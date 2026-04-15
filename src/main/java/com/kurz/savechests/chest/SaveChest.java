@@ -1,5 +1,6 @@
 package com.kurz.savechests.chest;
 
+import com.google.gson.annotations.Expose;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -10,19 +11,28 @@ import java.util.concurrent.TimeUnit;
 
 public class SaveChest {
 
+    @Expose
     private final UUID id;
+    @Expose
     private final UUID owner;
+    @Expose
     private final Location location;
+    @Expose
     private final List<ItemStack> storageContents;
+    @Expose
     private final List<ItemStack> armorContents;
+    @Expose
     private final List<ItemStack> extraContents; // Offhand, etc.
+    @Expose
     private final int experience;
+    @Expose
     private final long creationTime;
+    @Expose
     private long duration;
+
     private UUID hologramUuid;
 
-    // 6-argument constructor for internal use
-    public SaveChest(UUID owner, Location location, List<ItemStack> storage, List<ItemStack> armor, List<ItemStack> extra, int experience) {
+    public SaveChest(UUID owner, Location location, List<ItemStack> storage, List<ItemStack> armor, List<ItemStack> extra, int experience, long durationSeconds) {
         this.id = UUID.randomUUID();
         this.owner = owner;
         this.location = location;
@@ -30,21 +40,8 @@ public class SaveChest {
         this.armorContents = armor;
         this.extraContents = extra;
         this.experience = experience;
-        this.creationTime = System.currentTimeMillis(); // Set creation time internally
-        this.duration = TimeUnit.HOURS.toMillis(1);     // Default duration, can be overridden from config
-    }
-
-    // 7-argument constructor to satisfy the ghost in the machine
-    public SaveChest(UUID owner, Location location, List<ItemStack> storage, List<ItemStack> armor, List<ItemStack> extra, int experience, long creationTime) {
-        this.id = UUID.randomUUID();
-        this.owner = owner;
-        this.location = location;
-        this.storageContents = storage;
-        this.armorContents = armor;
-        this.extraContents = extra;
-        this.experience = experience;
-        this.creationTime = creationTime;
-        this.duration = TimeUnit.HOURS.toMillis(1);
+        this.creationTime = System.currentTimeMillis();
+        this.duration = TimeUnit.SECONDS.toMillis(durationSeconds);
     }
 
     // --- Content Management ---
@@ -92,7 +89,7 @@ public class SaveChest {
     public List<ItemStack> getExtraContents() {
         return extraContents;
     }
-
+    
     public List<ItemStack> getOffHandContents() {
         return extraContents;
     }
@@ -113,7 +110,7 @@ public class SaveChest {
     public boolean isExpired() {
         return getRemainingSeconds() <= 0;
     }
-
+    
     public UUID getHologramUuid() {
         return hologramUuid;
     }

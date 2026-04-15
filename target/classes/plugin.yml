@@ -1,5 +1,5 @@
 name: SaveChests
-version: 1.5.1
+version: 1.6.1
 main: com.kurz.savechests.SaveChests
 api-version: '1.21'
 

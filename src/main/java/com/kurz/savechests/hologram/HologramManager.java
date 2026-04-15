@@ -33,8 +33,7 @@ public class HologramManager {
         if (saveChest.getLocation().getWorld() == null) return;
 
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            double heightOffset = plugin.getConfig().getDouble("hologram.height-offset", 1.25);
-            Location hologramLocation = saveChest.getLocation().clone().add(0.5, heightOffset, 0.5);
+            Location hologramLocation = saveChest.getLocation().getBlock().getLocation().add(0.5, 1.5, 0.5);
 
             TextDisplay textDisplay = (TextDisplay) saveChest.getLocation().getWorld().spawnEntity(hologramLocation, EntityType.TEXT_DISPLAY);
 

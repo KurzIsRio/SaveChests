@@ -34,8 +34,8 @@ public class ChestManager {
     }
 
     public void createChest(Player player, Location location, List<ItemStack> storage, List<ItemStack> armor, List<ItemStack> offhand, int experience) {
-        // This is the line that had the error. The final 'long' argument has been removed.
-        SaveChest saveChest = new SaveChest(player.getUniqueId(), location, storage, armor, offhand, experience);
+        long duration = plugin.getConfig().getLong("chest-duration.default", 3600);
+        SaveChest saveChest = new SaveChest(player.getUniqueId(), location, storage, armor, offhand, experience, duration);
         activeChests.put(saveChest.getId(), saveChest);
 
         // Set block to chest, or obsidian if in lava
