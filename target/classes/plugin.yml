@@ -1,0 +1,14 @@
+name: SaveChests
+version: 1.5.1
+main: com.kurz.savechests.SaveChests
+api-version: '1.21'
+
+softdepend:
+  - WorldGuard
+  - PlaceholderAPI
+
+commands:
+  savechests:
+    description: Base command for the SaveChests plugin.
+    usage: /<command>
+    aliases: [sc]

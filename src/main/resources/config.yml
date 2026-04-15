@@ -1,0 +1,84 @@
+# SaveChests Configuration File
+# ---------------------------------
+# For support, join our Discord: [Your Discord Link]
+
+# General settings for chest behavior
+chest-settings:
+  duration-seconds: 3600
+  chest-material: "CHEST"
+  auto-save-interval-seconds: 300
+
+# ---- New Configuration Sections ----
+
+# Settings to control who can access and interact with SaveChests.
+chest-protection:
+  # If true, enables the protection features below.
+  enabled: true
+  # If true, allows players who are not the owner to right-click and view the contents of the chest.
+  # They will not be able to take items.
+  allow-others-to-view: false
+
+# Customization for the premium SaveChest GUI.
+gui:
+  # The material used for the filler glass panes in the GUI. 
+  # Example: "GRAY_STAINED_GLASS_PANE", "BLACK_STAINED_GLASS_PANE"
+  glass-pane-color: "GRAY_STAINED_GLASS_PANE"
+
+# Logic for handling deaths in specific environments.
+environment-logic:
+  # If a player dies in the void (or below the world's min height), the chest will be placed at this Y-level.
+  void-save-y-level: 0
+  void-search-radius: 10
+  lava-float-enabled: true
+
+# ---- End New Sections ----
+
+# All plugin messages, fully configurable with MiniMessage format.
+# https://docs.advntr.dev/minimessage/format.html
+messages:
+  # Sent to the player immediately after their chest is created.
+  # Placeholders: %x%, %y%, %z%, %world%
+  chest-created-location: "<green>Your SaveChest has spawned at <white>X:%x%, Y:%y%, Z:%z%</white> in world <white>%world%</white>.</green>"
+  chest-created: "<gold>Your items have been saved in a SaveChest!</gold>"
+  chest-retrieved: "<green>You have retrieved the contents of your SaveChest.</green>"
+  not-your-chest: "<red>This is not another player's SaveChest!</red>"
+  cannot-take-items: "<red>You can view this chest, but you cannot take items.</red>"
+  inventory-full-dropped: "<yellow>Your inventory is full, so some items were dropped on the ground.</yellow>"
+  no-chests: "<yellow>You have no active SaveChests.</yellow>"
+  no-chests-to-purge: "<yellow>You have no chests to purge.</yellow>"
+  chest-list-header: "<green>Your active SaveChests:</green>"
+  chest-list-item: "<gray>- Chest created <white>%minutes%</white> minutes ago at <white>%location%</white>.</gray>"
+  chests-purged: "<green>Successfully purged %count% of your SaveChests.</green>"
+  chest-failed-location: "<red>Could not find a safe location for your SaveChest. Your items have been dropped normally.</red>"
+  chest-info: "<gold>Chest Info:</gold> <gray>Owner: <white>%owner%</white>, Location: <white>%location%</white>, Expires in: <white>%time%</white>"
+  chest-unlocked: "<green>You have unlocked this chest.</green>"
+  chest-teleported: "<green>You have been teleported to the SaveChest.</green>"
+  chest-fetched: "<green>The contents of the SaveChest have been added to your inventory.</green>"
+  reload-success: "<green>SaveChests configuration reloaded successfully.</green>"
+  no-permission: "<red>You do not have permission to use this command.</red>"
+  player-not-found: "<red>Player not found.</red>"
+  chest-not-found: "<red>Could not find a SaveChest with that ID.</red>"
+  insufficient-funds: "<red>You do not have enough money for this. Cost: <white>%cost%</white></red>"
+
+# Visual and audio effects for the chest.
+visuals:
+  spawn-sound: "BLOCK_CHEST_LOCKED"
+  spawn-particles: "TOTEM"
+
+# Hologram settings for the text display above the chest.
+hologram:
+  height-offset: 1.25
+  lines:
+    - "<gold><bold>%player_name%'s Items</bold></gold>"
+    - "<red>Expires in: %time%s</red>"
+
+# World-specific settings.
+world-management:
+  disabled-worlds:
+    - "world_the_end"
+    - "a_disabled_world"
+
+# Economy settings for command costs (Requires Vault).
+economy:
+  tp-cost: 100.0
+  fetch-cost: 500.0
