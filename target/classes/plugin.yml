@@ -1,11 +1,12 @@
 name: SaveChests
-version: 1.6.1
+version: 1.2.0
 main: com.kurz.savechests.SaveChests
 api-version: '1.21'
 
 softdepend:
   - WorldGuard
   - PlaceholderAPI
+  - SkinsRestorer
 
 commands:
   savechests:

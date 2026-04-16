@@ -18,13 +18,13 @@ public class SaveChest {
     @Expose
     private final Location location;
     @Expose
-    private final List<ItemStack> storageContents;
+    private List<ItemStack> storageContents;
     @Expose
-    private final List<ItemStack> armorContents;
+    private List<ItemStack> armorContents;
     @Expose
-    private final List<ItemStack> extraContents; // Offhand, etc.
+    private List<ItemStack> extraContents;
     @Expose
-    private final int experience;
+    private int experience;
     @Expose
     private final long creationTime;
     @Expose
@@ -44,84 +44,49 @@ public class SaveChest {
         this.duration = TimeUnit.SECONDS.toMillis(durationSeconds);
     }
 
-    // --- Content Management ---
-
-    public void updateContents(List<ItemStack> storage, List<ItemStack> armor, List<ItemStack> extra) {
-        this.storageContents.clear();
-        if (storage != null) this.storageContents.addAll(storage);
-
-        this.armorContents.clear();
-        if (armor != null) this.armorContents.addAll(armor);
-
-        this.extraContents.clear();
-        if (extra != null) this.extraContents.addAll(extra);
+    public boolean isEmpty() {
+        return (storageContents == null || storageContents.stream().allMatch(item -> item == null || item.getType() == Material.AIR)) &&
+               (armorContents == null || armorContents.stream().allMatch(item -> item == null || item.getType() == Material.AIR)) &&
+               (extraContents == null || extraContents.stream().allMatch(item -> item == null || item.getType() == Material.AIR)) &&
+               experience <= 0;
     }
 
-    public boolean isEmpty() {
-        boolean storageEmpty = storageContents == null || storageContents.stream().allMatch(item -> item == null || item.getType() == Material.AIR);
-        boolean armorEmpty = armorContents == null || armorContents.stream().allMatch(item -> item == null || item.getType() == Material.AIR);
-        boolean extraEmpty = extraContents == null || extraContents.stream().allMatch(item -> item == null || item.getType() == Material.AIR);
-        return storageEmpty && armorEmpty && extraEmpty;
+    public void clearContents() {
+        if (storageContents != null) storageContents.clear();
+        if (armorContents != null) armorContents.clear();
+        if (extraContents != null) extraContents.clear();
     }
 
     // --- Getters ---
-
-    public UUID getId() {
-        return id;
-    }
-
-    public UUID getOwner() {
-        return owner;
-    }
-
-    public Location getLocation() {
-        return location;
-    }
-
-    public List<ItemStack> getStorageContents() {
-        return storageContents;
-    }
-
-    public List<ItemStack> getArmorContents() {
-        return armorContents;
-    }
-
-    public List<ItemStack> getExtraContents() {
-        return extraContents;
-    }
-    
-    public List<ItemStack> getOffHandContents() {
-        return extraContents;
-    }
-
-    public int getExperience() {
-        return experience;
-    }
-
-    public long getCreationTime() {
-        return creationTime;
-    }
+    public UUID getId() { return id; }
+    public UUID getOwner() { return owner; }
+    public Location getLocation() { return location; }
+    public List<ItemStack> getStorageContents() { return storageContents; }
+    public List<ItemStack> getArmorContents() { return armorContents; }
+    public List<ItemStack> getExtraContents() { return extraContents; }
+    public int getExperience() { return experience; }
+    public UUID getHologramUuid() { return hologramUuid; }
 
     public long getRemainingSeconds() {
         long elapsed = System.currentTimeMillis() - creationTime;
-        return Math.max(0, TimeUnit.MILLISECONDS.toSeconds(duration - elapsed));
+        long remainingMillis = duration - elapsed;
+        return Math.max(0, TimeUnit.MILLISECONDS.toSeconds(remainingMillis));
     }
 
     public boolean isExpired() {
         return getRemainingSeconds() <= 0;
     }
-    
-    public UUID getHologramUuid() {
-        return hologramUuid;
-    }
 
     // --- Setters ---
-
-    public void setDuration(long seconds) {
-        this.duration = TimeUnit.SECONDS.toMillis(seconds);
-    }
-
     public void setHologramUuid(UUID hologramUuid) {
         this.hologramUuid = hologramUuid;
+    }
+
+    public void setExperience(int experience) {
+        this.experience = experience;
+    }
+
+    public void setStorageContents(List<ItemStack> storageContents) {
+        this.storageContents = storageContents;
     }
 }

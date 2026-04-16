@@ -23,6 +23,7 @@ public class SaveChests extends JavaPlugin {
     private WorldGuardManager worldGuardManager;
     private GuiManager guiManager;
     private boolean papiEnabled = false;
+    private boolean skinsRestorerEnabled = false;
 
     @Override
     public void onEnable() {
@@ -40,6 +41,12 @@ public class SaveChests extends JavaPlugin {
             getLogger().info("Successfully hooked into WorldGuard.");
         } else {
             getLogger().warning("WorldGuard not found, chest placement protection will not be available.");
+        }
+        if (getServer().getPluginManager().getPlugin("SkinsRestorer") != null) {
+            skinsRestorerEnabled = true;
+            getLogger().info("Successfully hooked into SkinsRestorer.");
+        } else {
+            getLogger().warning("SkinsRestorer not found, player heads will use default skins.");
         }
 
         this.hologramManager = new HologramManager(this);
@@ -73,7 +80,7 @@ public class SaveChests extends JavaPlugin {
         String message = getConfig().getString(key, "&cMessage not found: " + key);
         return message;
     }
-    
+
     // --- Accessors ---
 
     public Gson getGson() {
@@ -102,5 +109,9 @@ public class SaveChests extends JavaPlugin {
 
     public boolean isPapiEnabled() {
         return papiEnabled;
+    }
+
+    public boolean isSkinsRestorerEnabled() {
+        return skinsRestorerEnabled;
     }
 }

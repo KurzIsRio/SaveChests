@@ -3,17 +3,16 @@ package com.kurz.savechests.listeners;
 import com.kurz.savechests.SaveChests;
 import com.kurz.savechests.chest.SaveChest;
 import com.kurz.savechests.gui.GuiManager;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.Inventory;
 
 public class InteractionListener implements Listener {
 
@@ -30,7 +29,7 @@ public class InteractionListener implements Listener {
         }
 
         Block clickedBlock = event.getClickedBlock();
-        if (clickedBlock == null || (clickedBlock.getType() != Material.CHEST && clickedBlock.getType() != Material.OBSIDIAN)) {
+        if (clickedBlock == null) {
             return;
         }
 
@@ -44,7 +43,7 @@ public class InteractionListener implements Listener {
         boolean isOwner = saveChest.getOwner().equals(player.getUniqueId());
 
         if (player.isSneaking() && isOwner) {
-            plugin.getGuiManager().retrieveItems(player, saveChest, true);
+            plugin.getGuiManager().retrieveAllItems(player, saveChest);
         } else {
             plugin.getChestManager().openChest(player, saveChest);
         }
@@ -52,39 +51,51 @@ public class InteractionListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        Inventory inventory = event.getInventory();
-        if (inventory.getHolder() instanceof GuiManager) {
-            Player player = (Player) event.getWhoClicked();
-            SaveChest saveChest = plugin.getChestManager().getChestByLocation(player.getTargetBlock(null, 5).getLocation());
+        if (!(event.getInventory().getHolder() instanceof GuiManager.SaveChestViewHolder)) {
+            return;
+        }
 
-            if (saveChest == null) {
-                return;
-            }
+        event.setCancelled(true);
+        Player player = (Player) event.getWhoClicked();
+        GuiManager.SaveChestViewHolder holder = (GuiManager.SaveChestViewHolder) event.getInventory().getHolder();
+        SaveChest saveChest = holder.getSaveChest();
 
-            boolean isOwner = saveChest.getOwner().equals(player.getUniqueId());
+        boolean isOwner = saveChest.getOwner().equals(player.getUniqueId());
 
-            if (!isOwner) {
-                event.setCancelled(true);
-                player.sendMessage(plugin.formatMessage("messages.cannot-take-items"));
-                return;
-            }
-            
-            // Allow players to take items from the GUI
-            if (event.getRawSlot() < 54) {
-                // The actual item retrieval is handled when the inventory is closed or via shift-click
-            } else {
-                // Prevent moving items in their own inventory
-                event.setCancelled(true);
-            }
+        if (!isOwner && !plugin.getConfig().getBoolean("chest-protection.allow-others-to-view")) {
+            player.closeInventory();
+            player.sendMessage(plugin.formatMessage("messages.not-your-chest"));
+            return;
+        }
+        
+        if (!isOwner && event.getClick() != ClickType.LEFT) { // Allow viewing but not taking
+             player.sendMessage(plugin.formatMessage("messages.cannot-take-items"));
+             return;
+        }
+
+        int clickedSlot = event.getRawSlot();
+        int expBottleSlot = plugin.getConfig().getInt("gui.experience-bottle-slot", 4);
+
+        if (clickedSlot == expBottleSlot) {
+            plugin.getGuiManager().claimExperience(player, saveChest);
+        } else if (clickedSlot < 54) { // Inside the GUI
+            plugin.getGuiManager().handleItemRemoval(event);
         }
     }
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        Inventory inventory = event.getInventory();
-        if (inventory.getHolder() instanceof GuiManager) {
-            // Logic to check if the chest is empty and should be removed
-            // For now, we will assume retrieval is handled by shift-click or command
+        if (!(event.getInventory().getHolder() instanceof GuiManager.SaveChestViewHolder)) {
+            return;
+        }
+
+        GuiManager.SaveChestViewHolder holder = (GuiManager.SaveChestViewHolder) event.getInventory().getHolder();
+        SaveChest saveChest = holder.getSaveChest();
+
+        if (saveChest != null && saveChest.isEmpty()) {
+            plugin.getChestManager().removeChest(saveChest, false);
+            Player player = (Player) event.getPlayer();
+            player.sendMessage(plugin.formatMessage("messages.chest-retrieved"));
         }
     }
 }

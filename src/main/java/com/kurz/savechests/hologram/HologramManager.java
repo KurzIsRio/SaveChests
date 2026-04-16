@@ -33,7 +33,8 @@ public class HologramManager {
         if (saveChest.getLocation().getWorld() == null) return;
 
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Location hologramLocation = saveChest.getLocation().getBlock().getLocation().add(0.5, 1.5, 0.5);
+            double heightOffset = plugin.getConfig().getDouble("hologram.height-offset", 1.5);
+            Location hologramLocation = saveChest.getLocation().getBlock().getLocation().add(0.5, heightOffset, 0.5);
 
             TextDisplay textDisplay = (TextDisplay) saveChest.getLocation().getWorld().spawnEntity(hologramLocation, EntityType.TEXT_DISPLAY);
 
@@ -123,6 +124,7 @@ public class HologramManager {
             String line = formatLines.get(i);
             line = line.replace("%player_name%", ownerName);
             line = line.replace("%time%", formattedTime);
+            line = line.replace("%experience%", String.valueOf(saveChest.getExperience()));
 
             if (plugin.isPapiEnabled()) {
                 line = PlaceholderAPI.setPlaceholders(owner, line);

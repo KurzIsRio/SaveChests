@@ -2,126 +2,152 @@ package com.kurz.savechests.gui;
 
 import com.kurz.savechests.SaveChests;
 import com.kurz.savechests.chest.SaveChest;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
-public class GuiManager implements InventoryHolder {
+public class GuiManager {
 
     private final SaveChests plugin;
     private final Material glassPaneMaterial;
-    private final Set<UUID> messagedPlayers = new HashSet<>();
+    private final int experienceBottleSlot;
 
     public GuiManager(SaveChests plugin) {
         this.plugin = plugin;
-        this.glassPaneMaterial = Material.matchMaterial(plugin.getConfig().getString("gui.glass-pane-color", "GRAY_STAINED_GLASS_PANE"));
-    }
-
-    @Override
-    public Inventory getInventory() {
-        // This is required for the InventoryHolder implementation
-        return null;
+        String paneColor = plugin.getConfig().getString("gui.glass-pane-color", "GRAY_STAINED_GLASS_PANE");
+        this.glassPaneMaterial = Optional.ofNullable(Material.matchMaterial(paneColor)).orElse(Material.GRAY_STAINED_GLASS_PANE);
+        this.experienceBottleSlot = plugin.getConfig().getInt("gui.experience-bottle-slot", 4);
     }
 
     public Inventory createChestGui(SaveChest saveChest) {
-        Inventory gui = Bukkit.createInventory(this, 54, plugin.getMiniMessage().deserialize("<dark_gray>SaveChest</dark_gray>"));
+        Inventory gui = Bukkit.createInventory(new SaveChestViewHolder(saveChest), 54, plugin.getMiniMessage().deserialize("<dark_gray>SaveChest</dark_gray>"));
 
         ItemStack glassPane = new ItemStack(glassPaneMaterial);
+        ItemMeta glassMeta = glassPane.getItemMeta();
+        glassMeta.displayName(Component.text(" "));
+        glassPane.setItemMeta(glassMeta);
+
+        for (int i = 36; i < 45; i++) {
+            gui.setItem(i, glassPane);
+        }
+
+        if (saveChest.getExperience() > 0) {
+            ItemStack expBottle = new ItemStack(Material.EXPERIENCE_BOTTLE);
+            ItemMeta meta = expBottle.getItemMeta();
+            meta.displayName(plugin.getMiniMessage().deserialize("<gold>Click to claim your experience</gold>"));
+            meta.lore(Collections.singletonList(plugin.getMiniMessage().deserialize("<gray>Levels: <white>" + saveChest.getExperience() + "</white></gray>")));
+            expBottle.setItemMeta(meta);
+            gui.setItem(experienceBottleSlot, expBottle);
+        }
+
+        setGuiContents(gui, saveChest);
+        return gui;
+    }
+
+    private void setGuiContents(Inventory gui, SaveChest saveChest) {
+        gui.clear(); // Clear current items before setting new ones
+
+        // Re-add glass panes and other decorative items
+        ItemStack glassPane = new ItemStack(glassPaneMaterial);
+        ItemMeta glassMeta = glassPane.getItemMeta();
+        glassMeta.displayName(Component.text(" "));
+        glassPane.setItemMeta(glassMeta);
         for (int i = 36; i < 45; i++) {
             gui.setItem(i, glassPane);
         }
 
         int storageSlot = 0;
-        for (ItemStack item : saveChest.getStorageContents()) {
-            if (storageSlot < 36) {
-                gui.setItem(storageSlot++, item);
+        if (saveChest.getStorageContents() != null) {
+            for (ItemStack item : saveChest.getStorageContents()) {
+                if (storageSlot < 36) gui.setItem(storageSlot++, item);
             }
         }
 
         List<ItemStack> armor = saveChest.getArmorContents();
-        if (armor.size() > 0) gui.setItem(45, armor.get(3));
-        if (armor.size() > 1) gui.setItem(46, armor.get(2));
-        if (armor.size() > 2) gui.setItem(47, armor.get(1));
-        if (armor.size() > 3) gui.setItem(48, armor.get(0));
+        if (armor != null) {
+            if (armor.size() > 3) gui.setItem(45, armor.get(3)); // Helmet
+            if (armor.size() > 2) gui.setItem(46, armor.get(2)); // Chestplate
+            if (armor.size() > 1) gui.setItem(47, armor.get(1)); // Leggings
+            if (armor.size() > 0) gui.setItem(48, armor.get(0)); // Boots
+        }
 
         List<ItemStack> offhand = saveChest.getExtraContents();
-        if (!offhand.isEmpty()) {
+        if (offhand != null && !offhand.isEmpty()) {
             gui.setItem(53, offhand.get(0));
         }
-
-        return gui;
     }
 
-    public void retrieveItems(Player player, SaveChest saveChest, boolean isShiftClick) {
-        List<ItemStack> leftoverItems = new ArrayList<>();
-        messagedPlayers.remove(player.getUniqueId()); // Clear previous message status
+    public void handleItemRemoval(InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof SaveChestViewHolder)) return;
 
-        if (isShiftClick) {
-            autoEquipItems(player, saveChest, leftoverItems);
-        } else {
-            leftoverItems.addAll(saveChest.getStorageContents());
-            leftoverItems.addAll(saveChest.getArmorContents());
-            leftoverItems.addAll(saveChest.getExtraContents());
+        SaveChest saveChest = ((SaveChestViewHolder) event.getInventory().getHolder()).getSaveChest();
+        ItemStack clickedItem = event.getCurrentItem();
+
+        if (clickedItem == null || clickedItem.getType().isAir()) return;
+
+        // Directly remove the item from the correct list
+        boolean removed = saveChest.getStorageContents().remove(clickedItem) ||
+                saveChest.getArmorContents().remove(clickedItem) ||
+                saveChest.getExtraContents().remove(clickedItem);
+
+        if (removed) {
+            event.getWhoClicked().getInventory().addItem(clickedItem);
+            event.getInventory().setItem(event.getSlot(), null); // Update the GUI
+        }
+    }
+
+    public void retrieveAllItems(Player player, SaveChest saveChest) {
+        List<ItemStack> allItems = new ArrayList<>();
+        if (saveChest.getStorageContents() != null) allItems.addAll(saveChest.getStorageContents());
+        if (saveChest.getArmorContents() != null) allItems.addAll(saveChest.getArmorContents());
+        if (saveChest.getExtraContents() != null) allItems.addAll(saveChest.getExtraContents());
+
+        for (ItemStack item : allItems) {
+            if (item != null) player.getInventory().addItem(item).forEach((index, leftover) -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
         }
 
-        for (ItemStack item : leftoverItems) {
-            if (item != null) {
-                 if (player.getInventory().firstEmpty() == -1) {
-                    player.getWorld().dropItemNaturally(player.getLocation(), item);
-                    if (!messagedPlayers.contains(player.getUniqueId())) {
-                        player.sendMessage(plugin.formatMessage("messages.inventory-full-dropped"));
-                        messagedPlayers.add(player.getUniqueId());
-                    }
-                } else {
-                    player.getInventory().addItem(item);
-                }
-            }
-        }
-
-        if (saveChest.getExperience() > 0) {
-            player.giveExp(saveChest.getExperience());
-        }
-
+        saveChest.clearContents();
         plugin.getChestManager().removeChest(saveChest, false);
+        player.closeInventory();
         player.sendMessage(plugin.formatMessage("messages.chest-retrieved"));
     }
 
-    private void autoEquipItems(Player player, SaveChest saveChest, List<ItemStack> leftoverItems) {
-        leftoverItems.addAll(saveChest.getStorageContents());
-        
-        List<ItemStack> armor = new ArrayList<>(saveChest.getArmorContents());
-        equipOrAdd(player.getInventory().getBoots(), player.getInventory()::setBoots, armor, 3, leftoverItems, player);
-        equipOrAdd(player.getInventory().getLeggings(), player.getInventory()::setLeggings, armor, 2, leftoverItems, player);
-        equipOrAdd(player.getInventory().getChestplate(), player.getInventory()::setChestplate, armor, 1, leftoverItems, player);
-        equipOrAdd(player.getInventory().getHelmet(), player.getInventory()::setHelmet, armor, 0, leftoverItems, player);
+    public void claimExperience(Player player, SaveChest saveChest) {
+        if (saveChest.getExperience() > 0) {
+            player.giveExp(saveChest.getExperience());
+            saveChest.setExperience(0);
 
-        List<ItemStack> offhand = saveChest.getExtraContents();
-        if (!offhand.isEmpty() && offhand.get(0) != null) {
-            if (player.getInventory().getItemInOffHand().getType() == Material.AIR) {
-                player.getInventory().setItemInOffHand(offhand.get(0));
-            } else {
-                leftoverItems.add(offhand.get(0));
+            // Refresh the GUI to remove the experience bottle
+            if (player.getOpenInventory().getTopInventory().getHolder() instanceof SaveChestViewHolder) {
+                player.getOpenInventory().getTopInventory().setItem(experienceBottleSlot, null);
             }
         }
     }
 
-    private void equipOrAdd(ItemStack currentArmor, java.util.function.Consumer<ItemStack> equipSlot, List<ItemStack> savedArmor, int index, List<ItemStack> leftovers, Player player) {
-        if (index < savedArmor.size() && savedArmor.get(index) != null) {
-            ItemStack itemToEquip = savedArmor.get(index);
-            if (currentArmor == null || currentArmor.getType() == Material.AIR) {
-                equipSlot.accept(itemToEquip);
-            } else {
-                leftovers.add(itemToEquip);
-            }
+    public static class SaveChestViewHolder implements InventoryHolder {
+        private final SaveChest saveChest;
+
+        public SaveChestViewHolder(SaveChest saveChest) {
+            this.saveChest = saveChest;
+        }
+
+        public SaveChest getSaveChest() {
+            return saveChest;
+        }
+
+        @Override
+        public @NotNull Inventory getInventory() {
+            // This is intentionally not implemented as the GUI is managed by the GuiManager
+            return null;
         }
     }
 }

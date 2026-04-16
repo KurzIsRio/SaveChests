@@ -31,7 +31,6 @@ public class DeathListener implements Listener {
         PlayerInventory inventory = player.getInventory();
         Location deathLocation = player.getLocation();
 
-        // Make defensive copies of all item categories
         List<ItemStack> storageContents = Arrays.stream(inventory.getStorageContents())
                 .filter(item -> item != null && !item.getType().isAir())
                 .map(ItemStack::clone)
@@ -42,53 +41,47 @@ public class DeathListener implements Listener {
                 .map(ItemStack::clone)
                 .collect(Collectors.toList());
 
-        List<ItemStack> offHandContents = Arrays.stream(inventory.getExtraContents()) // ExtraContents includes the off-hand
+        List<ItemStack> offHandContents = Arrays.stream(inventory.getExtraContents())
                 .filter(item -> item != null && !item.getType().isAir())
                 .map(ItemStack::clone)
                 .collect(Collectors.toList());
 
-        int experienceToSave = event.getDroppedExp();
+        int expPercentage = plugin.getConfig().getInt("chest-settings.exp-save-percentage", 100);
+        int experienceToSave = (int) (event.getDroppedExp() * (expPercentage / 100.0));
+        int expToDrop = event.getDroppedExp() - experienceToSave;
 
         if (storageContents.isEmpty() && armorContents.isEmpty() && offHandContents.isEmpty() && experienceToSave == 0) {
-            return; // Nothing to save
+            return;
         }
 
-        // Prevent vanilla drops
         event.getDrops().clear();
         event.setDroppedExp(0);
 
-        // Clear the player's inventory slots after we have copied the items
         inventory.clear();
-        inventory.setArmorContents(new ItemStack[4]);
-        inventory.setItemInOffHand(null);
 
-        // Find a safe location asynchronously to avoid server lag
         new SafeLocationTask(plugin, deathLocation, (safeLocation) -> {
-            WorldGuardManager wgManager = plugin.getWorldGuardManager();
-            boolean canPlaceChest = safeLocation != null && (wgManager == null || wgManager.canPlaceChest(safeLocation));
-
-            if (canPlaceChest) {
+            if (safeLocation != null) {
                 plugin.getChestManager().createChest(player, safeLocation, storageContents, armorContents, offHandContents, experienceToSave);
-                player.sendMessage(plugin.formatMessage("messages.chest-created"));
+                if (expToDrop > 0) {
+                    dropExperience(safeLocation, expToDrop);
+                }
             } else {
-                // If no safe spot is found, drop items at the original death location
-                dropItemsManually(deathLocation, storageContents, armorContents, offHandContents, experienceToSave);
+                dropItemsManually(deathLocation, storageContents, armorContents, offHandContents, event.getDroppedExp());
                 player.sendMessage(plugin.formatMessage("messages.chest-failed-location"));
             }
         }).runTaskAsynchronously(plugin);
     }
 
-    @SafeVarargs
-    private final void dropItemsManually(Location location, List<ItemStack>... itemLists) {
-        for (List<ItemStack> itemList : itemLists) {
-            for (ItemStack item : itemList) {
-                location.getWorld().dropItemNaturally(location, item);
-            }
+    private void dropItemsManually(Location location, List<ItemStack> storage, List<ItemStack> armor, List<ItemStack> offhand, int experience) {
+        storage.forEach(item -> location.getWorld().dropItemNaturally(location, item));
+        armor.forEach(item -> location.getWorld().dropItemNaturally(location, item));
+        offhand.forEach(item -> location.getWorld().dropItemNaturally(location, item));
+        if (experience > 0) {
+            dropExperience(location, experience);
         }
     }
-    
-    private void dropItemsManually(Location location, List<ItemStack> storage, List<ItemStack> armor, List<ItemStack> offhand, int experience) {
-        dropItemsManually(location, storage, armor, offhand);
+
+    private void dropExperience(Location location, int experience) {
         if (experience > 0) {
             location.getWorld().spawn(location, ExperienceOrb.class, orb -> orb.setExperience(experience));
         }

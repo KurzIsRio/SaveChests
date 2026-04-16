@@ -5,8 +5,11 @@
 # General settings for chest behavior
 chest-settings:
   duration-seconds: 3600
-  chest-material: "CHEST"
+  # The material to use for the spawned chest. Can be CHEST, TRAPPED_CHEST, ENDER_CHEST, BARREL, or PLAYER_HEAD
+  spawn-block-type: "CHEST"
   auto-save-interval-seconds: 300
+  # The percentage of experience points to save when a player dies. 100 means all XP is saved, 0 means none.
+  exp-save-percentage: 100
 
 # ---- New Configuration Sections ----
 
@@ -23,6 +26,8 @@ gui:
   # The material used for the filler glass panes in the GUI. 
   # Example: "GRAY_STAINED_GLASS_PANE", "BLACK_STAINED_GLASS_PANE"
   glass-pane-color: "GRAY_STAINED_GLASS_PANE"
+  # The slot to place the experience bottle in the GUI. 0-53
+  experience-bottle-slot: 4
 
 # Logic for handling deaths in specific environments.
 environment-logic:
@@ -71,6 +76,7 @@ hologram:
   lines:
     - "<gold><bold>%player_name%'s Items</bold></gold>"
     - "<red>Expires in: %time%s</red>"
+    - "<aqua>XP: %experience%</aqua>"
 
 # World-specific settings.
 world-management:
